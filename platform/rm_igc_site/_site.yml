@@ -1,0 +1,16 @@
+---
+name: "rolling_metaketa"
+navbar:
+  title: "Rolling Metaketa: Intergroup Contact"
+  left:
+    - text: "Theory"
+      href: index.html
+    - text: "Meta-analysis"
+      href: meta-analysis.html
+    - text: "Aggregation"
+      href: aggregation.html
+    - text: "Challenges"
+      href: challenges.html
+    - text: "How to contribute"
+      href: contribute.html
+---
