@@ -1,0 +1,146 @@
+---
+title: "A simple contact"
+author: "Julio S. Solís Arce"
+date: "11/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DeclareDesign)
+library(DesignLibrary)
+library(knitr)
+library(DT)
+library(tidyverse)
+library(dagitty)
+library(kableExtra)
+
+n_sims = 100
+```
+
+
+Imagine we have a very simple theory where contact reduces prejudice through perspective taking. Also, contact, on its own, could affect prejudice (for better or worse). Allport's conditions are not shown in the DAG since they are moderators.
+
+```{r theory, echo=FALSE, message=FALSE}
+
+plot(dagitty( "dag {
+    Contact -> Perspective -> Prejudice 
+    Contact -> Prejudice
+}"))
+
+```
+
+We would like to examine this particular model with data from a collection of independent studies which might look at different arrows and nodes of the model. Suitable for this are "model-based meta-analysis".
+
+We swept through the literature and found 10 different studies. We need individual level data and information from variables in the model. Below we inspect our studies and summarize which variables are in each study.
+
+```{r M}
+
+
+sim_studies <- function(prejudice=TRUE, contact=TRUE, perspective=TRUE){
+  
+  N <- floor(runif(1, min=1000, max=2500))
+  sd <- runif(1, min=0.1, max=.5)
+  ate_prejudice <- runif(1, min=0.1, max=.8)
+
+  if (prejudice) {p <-rnorm(n = N,  mean = ate_prejudice, sd = sd)}
+  if (contact) {c <- rbinom(N, 1, sd)}
+  if (perspective) {pe <- rbinom(N, 5, sd)}
+  
+  if (prejudice & contact) {df <- data.frame(prejudice=p, contact=c, perspective=NA)}
+  if (prejudice & perspective) {df <- data.frame(prejudice=p, perspective=pe, contact=NA)}
+  if (contact & perspective) {df <- data.frame(contact=c, perspective=pe, prejudice=NA)}
+  if (prejudice & contact & perspective) {df <- data.frame(prejudice=p, perspective=pe, contact=c)}
+  
+  return(df)
+  
+}
+
+scacco <- sim_studies()
+lowe <- sim_studies()
+mousa <- sim_studies(contact = FALSE)
+enos <- sim_studies(prejudice = FALSE)
+finseraas <- sim_studies(perspective = FALSE)
+
+c <- list(scacco, lowe, mousa, enos, finseraas)
+
+
+```
+
+
+```{r corr, echo=FALSE}
+
+p_scacco <- as.data.frame(cor(scacco)) %>%
+  rownames_to_column(var = "var") %>%
+  mutate(s="scacco")
+p_lowe <- as.data.frame(cor(lowe)) %>%
+  rownames_to_column(var = "var")%>%
+  mutate(s="lowe")
+p_mousa <- as.data.frame(cor(mousa)) %>%
+  rownames_to_column(var = "var")%>%
+  mutate(s="mousa")
+p_enos <- as.data.frame(cor(enos)) %>%
+  rownames_to_column(var = "var")%>%
+  mutate(s="enos")
+p_finseraas <- as.data.frame(cor(finseraas)) %>%
+  rownames_to_column(var = "var")%>%
+  mutate(s="finseraas")
+
+p_all <- plyr::rbind.fill(p_scacco, p_lowe, p_mousa, p_enos, p_finseraas)
+
+c_pe <- p_all %>%
+  select(var, perspective, s) %>%
+  filter(var=="contact") %>%
+  select("perspective_contact"=perspective, s)
+
+c_p <- p_all %>%
+  select(var, prejudice, s) %>%
+  filter(var=="contact") %>%
+  select("prejudice_contact"=prejudice, s)
+
+pe_p <- p_all %>%
+  select(var, prejudice, s) %>%
+  filter(var=="perspective") %>%
+  select("prejudice_perspective"=prejudice, s)
+
+corr_table <- left_join(c_pe, c_p) %>%
+  left_join(pe_p) %>%
+  mutate(n=c(nrow(scacco), nrow(lowe), nrow(mousa), nrow(enos), nrow(finseraas))) %>%
+  select("studies"=s, n, everything())
+
+
+kable(corr_table, 
+             col.names = c("Study", "n", "Corr Perspective taking and Contact", "Corr Prejudice and Contact", "Corr Prejudice and Perspective taking"),
+             caption = "Relationship between features of contact and prejudice") %>%
+  kable_styling(position = "center", full_width = F)
+
+```
+
+
+```{r D, echo=FALSE}
+is.pd(select(p_scacco, -s))
+
+```
+
+```{r , echo=FALSE}
+reveal <- declare_reveal(outcome_variables = c("Y")) 
+
+df1 <- reveal(df1)
+df1
+
+```
+
+```{r A, echo=FALSE}
+answer_1 <- declare_estimator(
+  Y ~ Z,
+  model = lm_robust,
+  estimand=c("ATE_prejudice"), 
+  label = "Treatment Effect- No controls"
+)
+
+answer_2   <- declare_estimator(
+  Y ~ Z + X, 
+  model = lm_robust,
+  estimand = "ATE_prejudice",
+  label = "Treatment Effect- With controls")
+```

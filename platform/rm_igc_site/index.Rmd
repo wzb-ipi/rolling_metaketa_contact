@@ -1,5 +1,7 @@
 ---
-title: "My Website"
+title: "Theory"
 ---
 
-Hello, Website!
+Social scientists have recently taken a renewed interest in Gordon Allport's "contact hypothesis":
+
+___Prejudice___ [...] ___may be reduced by equal status contact between majority and minority groups in the pursuit of common goals. The effect is greatly enhanced if this contact is sanctioned by institutional supports___ [...] ___and provided it is of a sort that leads to the perception of common interests and common humanity between members of the two groups___
